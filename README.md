@@ -15,7 +15,7 @@ rails делает при создании bundle install и rails webpacker:ins
 	Если у нас ruby-3.0.0 то надо при использовании rpec установить ``gem 'rexml'``
 	Запуск теста rspec путь к тесту
 
-**Замеччание**: ```gem ```rspec-rails```
+**Замеччание**: gem ```rspec-rails```
 
 ### Настройка .rspec
 
