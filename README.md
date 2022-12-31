@@ -6,6 +6,8 @@
 rails new app --skip-test --database=postgresql
 rails делает при создании bundle install и rails webpacker:install
 ```
+**Замечание**: при работе с WSL надо проверить наличие библиотеки ```sudo apt install libpq-dev```.
+
 
 ### Удаляем test и устанавливаем rspec-rails
 	
