@@ -1,5 +1,249 @@
 # Мануал по Ruby on Rails
 
+## Развертывание приложения на VPS
+
+### Создание публичного ssh-ключа
+
+```ssh-keygen```
+```ls ~/.ssh/```
+```cat ~/.ssh/id_rsa.pub```
+
+### Действия на сервере VPS
+
+- добавить на хостинг ssh ключ
+- сгенерировать сервер
+- поменять его имя
+- сразу зайти не получиться потому, что 80 порт, который ответственен за http не открыт, но открыт порт 22 для ssh
+- ls ~/.ssh/autorized_keys на удаленном сервере = cat ~/.ssh/id_rsa.pub на хосте
+
+### Создание пользователя в Linux
+
+```dpkg-reconfigure locales```
+```adduser  iof``` 
+```adduser  iof sudo```
+
+### Копирование ключа с удаленного сервера
+ssh-copy-id  iof@server_remote_ip
+
+### Установка rbenv
+
+- установка rbenv ( на серверах )
+
+- установка плагина ruby-build
+
+- rbenv ruby 3.0.0
+
+- rbenv global 3.0.0
+
+- which ruby
+
+- настройка отключения скачивания документации 
+
+- установить bundler
+
+### Установка nginx passenger
+
+```sudo service nginx start```
+
+- проверяем сервер и должны увидеть стартовое окно nginx
+
+- надо настроить nginx и отредактировать файл
+
+- nano etc/nginx/nginx.conf
+
+- ищем команды include и раскомментируем
+
+- nano etc/nginx/passenger.conf
+
+```
+passenger_root /usr/lib/ruby/vendor_ruby/fusion_passenger/location.ini;
+passenger_root /home/[user]/.rbenv/shims/ruby;
+```
+
+перезапустить сервер
+
+```sudo service nginx restart```
+
+создадим папку
+
+/etc/nginx/sites_available/myapp
+
+myapp - название сайта приложения 
+
+в файл скопировать
+
+```
+server 
+{
+		listen 80 default_server;
+		listen [::]:80 default_server ipv6only=on;
+		server_name mydomen.com;
+		access_log  /var/log/nginx/deploy.access.log;
+		error_log  /var/log/nginx/deploy.error.log;
+		passeger_enabled on;
+		rails_env production;
+		root home/[user]/www/public;
+}
+```
+
+mkdir -p /www/public/
+echo "Hello World" > /www/public/index.html
+
+включим наш сервер и сделаем символьную ссылку
+
+sudo ln -s /etc/nginx/sites_available/myapp  /etc/nginx/sites_enabled/myapp
+
+ls  /etc/nginx/sites_enabled/
+
+удаляем стандартный сервер default 
+
+sudo -rm /etc/nginx/sites_enabled/default 
+
+перезапустим сервис
+
+sudo service nginx restart
+
+перезайдем на сервер и должны увидеть hello world
+
+установка posgresql на ubuntu
+
+nano /etc/postgresql9.5/main/pg_hba.conf
+
+ищем строку
+
+local all all peer
+
+эта настройка отвечает за то, что можно аутентифицироваться в базе с таким же именем как имя в linux
+
+
+sudo su -postgres
+
+psql
+
+
+CREATE USER iof WITH PASSWORD '123';
+
+CREATE DATABASE myapp WITH OWNER = iof;
+
+\q
+
+psql myapp
+
+psql --user iof --p myapp
+
+
+создаем приложение на rails
+
+rails new bookmarks
+
+cd bookmarks
+
+bundle exec rails g  scaffold bookmark title url
+
+bundle exec rake db:migrate
+
+nano config/routes.rb
+
+root to: 'bookmarks#index'
+
+bundle exec rails s
+
+запушим в github
+
+database.yml   secrets.yml не должны быть в репозитории
+
+mv config/database.yml  config/database.yml.example
+
+mv config/secrets.yml  config/secrets.yml.example
+
+nano .gitignore
+
+добавляем 
+
+config/database.yml
+
+config/secrets.yml 
+
+nano Gemfile
+
+group :production
+  gem 'pg'
+end
+
+добавлем в репозиторий и коммит
+
+push
+
+если у нас приватный репозиторий
+
+генерируем ключ для сервера
+
+ssh-keygen -t rsa
+
+cat ~/.ssh/id_rsa.pub
+
+настройки репозитория deploy keys
+
+сервер имеет доступ к этому репозиторию ,чтобы забирать исходный код
+
+удаляем прошлую папку www
+
+git clone  ...   www
+
+заходим в папку
+
+доустанавливаем пакеты
+
+sudo apt-get install nodejs sqlite3 libsqlite3-dev libpq-dev
+
+bunle install --without test development
+
+настройка config/database.yaml
+
+```
+produccion:
+
+adapter: postgresql
+
+user:iof
+
+password:123
+
+database:myapp
+```
+
+bundle exec rake db:migrate RAILS_ENV  = production
+
+rake secret
+
+копируем
+
+mv config/secrets.yml.example config/secrets.yml  
+
+nano config/secrets.yml  
+
+```
+production:
+secret_key_base: paste
+```
+
+bundle exec rake assets:precompile RAILS_ENV:production
+
+sudo service nginx start
+
+если что-то изменили
+
+git push 
+
+в папке приложения www git pull
+
+touch tmp/restart.txt
+
+если этот файл был изменен сервер перезапускается
+
+
+
+
 ## Создание приложения
 
 ```rails
@@ -11,7 +255,7 @@ rails делает при создании bundle install и rails webpacker:ins
 
 ### Удаляем test и устанавливаем rspec-rails
 	
-  Далее ```rails g rspec:install```
+Далее ```rails g rspec:install```
 	Если у нас ruby-3.0.0 то надо при использовании rpec установить ``gem 'rexml'``
 	Запуск теста rspec путь к тесту
 
@@ -25,9 +269,7 @@ rails делает при создании bundle install и rails webpacker:ins
 --format doc
 ```
 
-
 ### Настройка при деплое на Heroku для webpack
-
 
 Webpacker подключает новую задачу webpacker: compile в assets: precompile, которая запускается всякий раз, когда вы запускаете assets: precompile. Если вы не используете Sprockets webpacker: compile автоматически становится псевдонимом assets: precompile. Не забудьте установить для переменной среды NODE_ENV значение production во время развертывания или при выполнении задачи rake.
 
